@@ -198,6 +198,17 @@ class CanteenQueueManager:
                 "error": f"Student {student['name']} already has an active order (Token #{pending[0]['token']}) currently cooking. Please collect it before placing a new one.",
             }
 
+        # Culinary sanity check: reject spicy coffee/tea/beverages
+        items_lower = items_summary.lower()
+        notes_lower = special_instructions.lower() if special_instructions else ""
+        has_food = any(f in items_lower for f in ["maggi", "sandwich", "roll", "paratha", "samosa", "thali", "rice", "omelette"])
+        is_only_beverage = any(b in items_lower for b in ["coffee", "tea", "chai", "lassi", "soda"]) and not has_food
+        if is_only_beverage and any(w in notes_lower for w in ["spicy", "chilli", "chili", "mirchi", "masala coffee"]):
+            return {
+                "success": False,
+                "error": "Culinary Sanity Error: The canteen cannot make spicy coffee or tea! Did you mean extra strong, or did you want to add a food item like Maggi?",
+            }
+
 
         queue_info = self.get_queue_summary()
         eta = queue_info["estimated_wait_minutes"] + random.randint(2, 5)
