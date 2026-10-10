@@ -107,6 +107,44 @@ def check_kitchen_queue() -> str:
 
 
 @tool
+def check_item_stock(item_name: str) -> str:
+    """Check the LIVE, real-time stock availability of a specific canteen menu item before placing an order.
+
+    item_name: The exact or approximate name of the menu item to check, e.g. 'Chole Bhature', 'Cold Coffee', 'Veg Maggi'
+    """
+    # Scan menu for the item using name matching
+    import re
+    target = item_name.strip().lower()
+    clean_target = re.sub(r"\s*\(.*?\)", "", target).strip()
+
+    best_match = None
+    for cat, items in canteen_data.CANTEEN_MENU.items():
+        for it in items:
+            it_name_lower = it["name"].strip().lower()
+            it_clean = re.sub(r"\s*\(.*?\)", "", it_name_lower).strip()
+            if it_name_lower == target or it_clean == clean_target:
+                best_match = it
+                break
+            if target in it_name_lower or it_name_lower in target:
+                if best_match is None:
+                    best_match = it
+        if best_match and best_match["name"].strip().lower() == target:
+            break
+
+    if best_match is None:
+        return (
+            f"Item '{item_name}' was not found in the canteen menu. "
+            f"Please call get_canteen_menu() to see all available items."
+        )
+
+    status = "🟢 IN STOCK — Available for ordering right now!" if best_match.get("in_stock", True) else "🔴 OUT OF STOCK — Currently unavailable."
+    return (
+        f"Live Stock Check for '{best_match['name']}': {status} "
+        f"| Price: ₹{best_match['price']} | Prep time: {best_match['prep_time']} mins"
+    )
+
+
+@tool
 def place_canteen_preorder(student_roll: str, items_summary: str, special_instructions: str, total_bill: int) -> str:
     """Place a confirmed pre-order for a student into the live canteen kitchen queue.
 

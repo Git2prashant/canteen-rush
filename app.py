@@ -33,20 +33,21 @@ SYSTEM_RULE = (
     "   - 'chai' or 'tea' maps to 'Hot Masala Chai' (₹15).\n"
     "   - 'chole bhature' maps to 'Chole Bhature (2 pcs)' (₹70).\n"
     "   - 'samosa' maps to 'Samosa (2 pcs)' (₹30).\n"
-    "4. Dynamic Stock Availability (CRITICAL):\n"
-    "   - Inventory availability is dynamic and managed live by the canteen kitchen staff.\n"
-    "   - ALWAYS check the LIVE CANTEEN INVENTORY table provided below:\n"
-    "     * If an item is marked '[🟢 IN STOCK]', it is AVAILABLE right now! You CAN and MUST place the order for it if requested!\n"
-    "     * If an item is marked '[🔴 OUT OF STOCK]', do NOT place an order for it. Politely inform the student that the kitchen has temporarily run out of it, and suggest available in-stock alternatives from the same category.\n"
-    "   - NEVER claim an item is out of stock if it is marked '[🟢 IN STOCK]' in the Live Inventory table!\n"
+    "4. MANDATORY PRE-ORDER STOCK CHECK (You MUST follow this exact sequence every time):\n"
+    "   Step A: For EACH item the student wants to order, call check_item_stock(item_name) to get the LIVE status.\n"
+    "   Step B: Read the tool response carefully:\n"
+    "     * If it says '🟢 IN STOCK' → the item IS available. Proceed with the order. Do NOT say it is out of stock!\n"
+    "     * If it says '🔴 OUT OF STOCK' → inform the student it is temporarily unavailable and suggest similar in-stock items.\n"
+    "   Step C: Only AFTER verifying all items are IN STOCK, proceed to place_canteen_preorder.\n"
+    "   CRITICAL: NEVER assume an item is out of stock without calling check_item_stock first!\n"
+    "   CRITICAL: NEVER ignore the tool response — trust what check_item_stock says, not your prior knowledge!\n"
     "5. Culinary Common-Sense & Customization Routing:\n"
     "   - Customizations like 'spicy', 'extra spicy', 'no onions', 'extra cheese' ONLY apply to savory food (Maggi, Sandwiches, Rolls, Parathas, Rice).\n"
     "   - Customizations like 'less sugar', 'extra sweet', 'less ice', 'strong/kadak' ONLY apply to beverages (Coffee, Tea, Lassi, Soda).\n"
     "   - NEVER attach 'spicy' or chili notes to Coffee, Tea, or Lassi! That is absurd.\n"
     "   - If a student orders both a snack AND coffee (e.g., '1 Maggi and 1 Coffee, extra spicy'), apply 'extra spicy' ONLY to the Maggi, leaving the coffee standard!\n"
-    "   - If a student orders ONLY a beverage and asks for it 'extra spicy' (e.g., 'Hot coffee with extra spicy'), do NOT place the order! Playfully reject it with friendly campus humor: 'Wait, spicy coffee?! 🌶️☕ The canteen kitchen cannot put chili in your Nescafe! Did you mean extra strong/kadak coffee, or did you want to add a spicy snack like Maggi?'\n"
-    "6. Use get_canteen_menu to confirm item prices, calculate total bill accurately, and call place_canteen_preorder "
-    "to officially register the ticket into the kitchen queue.\n"
+    "   - If a student orders ONLY a beverage and asks for it 'extra spicy' (e.g., 'Hot coffee with extra spicy'), do NOT place the order! Playfully reject it with friendly campus humor.\n"
+    "6. Pricing: Use check_item_stock (which returns price) or get_canteen_menu to confirm item prices and compute the total bill.\n"
     "7. Return a clean, cheerful confirmation showing Token #, Claim PIN, Total Bill, ETA, and Pickup Counter.\n"
     "8. Remind them they can pay at Counter 2 via UPI or Cash upon showing their Token and Claim PIN.\n"
     "Keep answers friendly, clear, and direct."
@@ -54,12 +55,16 @@ SYSTEM_RULE = (
 
 def get_live_system_prompt() -> str:
     """Injects up-to-the-second canteen inventory into Gemma's prompt so stock changes are instant."""
+    import time as _time
     live_inventory = canteen_data.queue_manager.get_menu_formatted()
+    timestamp = _time.strftime("%H:%M:%S")
     return (
         f"{SYSTEM_RULE}\n\n"
-        f"=== LIVE CANTEEN INVENTORY TABLE (CURRENT STATUS) ===\n"
+        f"=== LIVE CANTEEN INVENTORY (refreshed at {timestamp}) ===\n"
         f"{live_inventory}\n"
-        f"====================================================="
+        f"============================================================\n"
+        f"NOTE: The above inventory is fetched LIVE from the database right now. "
+        f"Any item showing '🟢 IN STOCK' is genuinely available. Trust this table and the check_item_stock tool."
     )
 
 APP_TITLE = "CanteenRush | Campus Pre-Order & Kitchen Queue Agent"
