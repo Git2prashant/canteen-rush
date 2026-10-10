@@ -168,7 +168,21 @@ body, .gradio-container {
     font-weight: 600;
     margin-top: 8px;
 }
+.prompt-box textarea {
+    font-size: 1.05rem !important;
+    line-height: 1.55 !important;
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    border: 1.5px solid #10b981 !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+.prompt-box textarea:focus {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+    border-color: #34d399 !important;
+}
 """
+
 
 with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
     gr.HTML(
@@ -189,22 +203,39 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
             with gr.Row():
                 with gr.Column(scale=3):
                     chatbot = gr.Chatbot(
-                        height=420,
+                        height=400,
                         label="Gemma 4 Canteen Concierge",
                     )
                     card_output = gr.HTML(label="Order Status Card")
 
+                    gr.Markdown("##### ⚡ Quick Item Add (Click to append):")
                     with gr.Row():
-                        user_input = gr.Textbox(
-                            placeholder="e.g., 'Order 1 Veg Maggi and 1 Cold Coffee, extra spicy. Roll: 12240101'",
-                            label="Your Message / Pre-Order",
-                            scale=4,
-                        )
-                        send_btn = gr.Button("Send Order 🚀", variant="primary", scale=1)
+                        chip_maggi = gr.Button("+ 🍜 Veg Maggi", size="sm", variant="secondary")
+                        chip_coffee = gr.Button("+ ☕ Hot Coffee", size="sm", variant="secondary")
+                        chip_sandwich = gr.Button("+ 🥪 Grilled Sandwich", size="sm", variant="secondary")
+                        chip_cold_coffee = gr.Button("+ 🧋 Cold Coffee", size="sm", variant="secondary")
+                        chip_spicy = gr.Button("+ 🌶️ Extra Spicy", size="sm", variant="secondary")
 
-                    gr.Markdown("#### 💡 Quick Demo Prompts:")
+                    user_input = gr.Textbox(
+                        lines=3,
+                        max_lines=5,
+                        placeholder=(
+                            "💬 Type your order or question naturally:\n"
+                            "• 'Place an order for 1 maggie + 2 cup coffee. Make maggi spicy.'\n"
+                            "• 'I have a budget of ₹80. What is quick and filling?'\n"
+                            "• 'Check current kitchen wait time.'"
+                        ),
+                        label="💬 Your Pre-Order / Message (Gemma 4 Command Center)",
+                        elem_classes=["prompt-box"],
+                    )
+
                     with gr.Row():
-                        btn_demo1 = gr.Button("🍜 Order Maggi + Cold Coffee", size="sm")
+                        send_btn = gr.Button("🚀 Send Order to Gemma 4", variant="primary", scale=4)
+                        clear_btn = gr.Button("🧹 Clear", variant="secondary", scale=1)
+
+                    gr.Markdown("#### 💡 Quick Demo Scenarios:")
+                    with gr.Row():
+                        btn_demo1 = gr.Button("🍜 Order Maggi + 2 Coffees", size="sm")
                         btn_demo2 = gr.Button("💰 Suggest meal under ₹70", size="sm")
                         btn_demo3 = gr.Button("⏱️ Check kitchen wait time", size="sm")
 
@@ -230,6 +261,21 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
                         """
                     )
 
+            # Helper for quick chips
+            def add_chip(current, chip_text):
+                cur = (current or "").strip()
+                if not cur:
+                    return f"Order {chip_text}"
+                return f"{cur}, {chip_text}"
+
+            chip_maggi.click(lambda c: add_chip(c, "1x Veg Maggi"), user_input, user_input)
+            chip_coffee.click(lambda c: add_chip(c, "1x Hot Coffee (Cup)"), user_input, user_input)
+            chip_sandwich.click(lambda c: add_chip(c, "1x Paneer Grilled Sandwich"), user_input, user_input)
+            chip_cold_coffee.click(lambda c: add_chip(c, "1x Cold Coffee"), user_input, user_input)
+            chip_spicy.click(lambda c: (c or "").strip() + (" (extra spicy)" if c else "Make it extra spicy"), user_input, user_input)
+
+            clear_btn.click(lambda: "", None, user_input)
+
             # Button wire-ups
             send_btn.click(
                 student_chat,
@@ -243,7 +289,7 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
             )
 
             btn_demo1.click(
-                lambda: "Order 1 Veg Maggi and 1 Cold Coffee with Ice Cream. Make the Maggi extra spicy and less cheese. Roll: 12240101",
+                lambda: "Place an order for 1 maggie + 2 cup coffee. Make maggi extra spicy. Roll: 12240101",
                 None,
                 user_input,
             )
@@ -257,6 +303,7 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
                 None,
                 user_input,
             )
+
 
         # TAB 2: Canteen Kitchen Live Display
         with gr.Tab("🍳 Canteen Kitchen Live Board"):
