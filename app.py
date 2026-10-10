@@ -145,14 +145,48 @@ def staff_mark_collected(token_str: str):
         return "⚠️ Please enter a valid Token number (e.g. 101)."
 
 
-def staff_set_stock(item_name: str, in_stock: bool):
-    """Staff marks item as in-stock or out-of-stock."""
+def get_item_stock_ui_state(item_name: str):
+    """Returns dynamic button and status text for the selected item."""
     if not item_name:
-        return "⚠️ Please select an item from the dropdown.", canteen_data.queue_manager.get_stock_board_data()
-    if canteen_data.queue_manager.toggle_item_stock(item_name, in_stock):
-        status_tag = "🟢 IN STOCK (Available)" if in_stock else "🔴 OUT OF STOCK"
-        return f"Updated: '{item_name}' is now {status_tag}!", canteen_data.queue_manager.get_stock_board_data()
-    return f"⚠️ Item '{item_name}' not found.", canteen_data.queue_manager.get_stock_board_data()
+        return (
+            gr.update(visible=False),
+            "Please select an item from the dropdown.",
+        )
+    is_in_stock = canteen_data.queue_manager.get_item_stock_status(item_name)
+    if is_in_stock:
+        return (
+            gr.update(value=f"🔴 Mark '{item_name}' as OUT OF STOCK", variant="stop", visible=True),
+            f"**Current Status:** 🟢 IN STOCK (Available for students)",
+        )
+    else:
+        return (
+            gr.update(value=f"🟢 Mark '{item_name}' as IN STOCK (Available)", variant="primary", visible=True),
+            f"**Current Status:** 🔴 OUT OF STOCK (Currently unavailable)",
+        )
+
+
+def toggle_stock_and_refresh(item_name: str):
+    """Toggles stock and returns updated UI states for all tables across the app."""
+    if not item_name:
+        return (
+            gr.update(),
+            "⚠️ Please select an item.",
+            canteen_data.queue_manager.get_stock_board_data(),
+            canteen_data.queue_manager.get_menu_ref_data(),
+            "⚠️ No item selected.",
+        )
+    curr_status = canteen_data.queue_manager.get_item_stock_status(item_name)
+    new_status = not curr_status
+    canteen_data.queue_manager.toggle_item_stock(item_name, new_status)
+
+    btn_update, status_text = get_item_stock_ui_state(item_name)
+    stock_board_data = canteen_data.queue_manager.get_stock_board_data()
+    menu_ref_data = canteen_data.queue_manager.get_menu_ref_data()
+    tag = "🟢 IN STOCK" if new_status else "🔴 OUT OF STOCK"
+    feedback = f"✅ Success: '{item_name}' is now marked as {tag}!"
+
+    return btn_update, status_text, stock_board_data, menu_ref_data, feedback
+
 
 
 
@@ -401,18 +435,25 @@ with gr.Blocks(title=APP_TITLE) as demo:
 
             action_status = gr.Textbox(label="Status Message", interactive=False)
 
-            gr.Markdown("### 📦 Canteen Stock Management (Toggle Live Availability):")
+            gr.Markdown("### 📦 Canteen Stock Management (Real-Time Availability Toggle):")
             with gr.Row():
                 item_select = gr.Dropdown(
                     choices=canteen_data.queue_manager.get_all_item_names(),
                     value="Chole Bhature (2 pcs)",
-                    label="Select Menu Item",
+                    label="Select Menu Item to Manage",
                     scale=2,
                 )
-                btn_mark_out = gr.Button("🔴 Mark OUT of Stock", variant="stop", scale=1)
-                btn_mark_in = gr.Button("🟢 Mark IN Stock", variant="primary", scale=1)
+                current_status_display = gr.Markdown(
+                    "**Current Status:** 🔴 OUT OF STOCK (Currently unavailable)",
+                    scale=2,
+                )
 
-            stock_action_status = gr.Textbox(label="Stock Update Message", interactive=False)
+            stock_toggle_btn = gr.Button(
+                value="🟢 Mark 'Chole Bhature (2 pcs)' as IN STOCK (Available)",
+                variant="primary",
+                size="lg",
+            )
+            stock_action_status = gr.Textbox(label="Live Update Feedback", interactive=False)
 
             # Wire-ups for staff controls
             refresh_btn.click(refresh_kitchen_board, None, [board_table, stats_display])
@@ -423,32 +464,29 @@ with gr.Blocks(title=APP_TITLE) as demo:
                 refresh_kitchen_board, None, [board_table, stats_display]
             )
 
-            btn_mark_out.click(
-                lambda item: staff_set_stock(item, False),
-                item_select,
-                [stock_action_status, stock_table],
-            )
-            btn_mark_in.click(
-                lambda item: staff_set_stock(item, True),
-                item_select,
-                [stock_action_status, stock_table],
-            )
-
         # TAB 3: Canteen Menu Reference
         with gr.Tab("📋 Canteen Menu & Price Card"):
             gr.Markdown("### 📜 IIT Bhilai Canteen Official Menu")
-            menu_rows = []
-            for cat, items in canteen_data.CANTEEN_MENU.items():
-                for it in items:
-                    status = "🟢 In Stock" if it.get("in_stock", True) else "🔴 Out of Stock"
-                    menu_rows.append([cat, it["name"], f"₹{it['price']}", status, f"{it['prep_time']} mins", it["desc"]])
-
-            gr.Dataframe(
+            menu_table = gr.Dataframe(
                 headers=["Category", "Item", "Price", "Stock Status", "Prep Time", "Description"],
                 datatype=["str", "str", "str", "str", "str", "str"],
-                value=menu_rows,
+                value=canteen_data.queue_manager.get_menu_ref_data(),
                 interactive=False,
             )
+
+        # Dynamic stock state update on dropdown selection
+        item_select.change(
+            get_item_stock_ui_state,
+            item_select,
+            [stock_toggle_btn, current_status_display],
+        )
+
+        # One-click toggle that flips status AND auto-refreshes all tables across Tab 1, Tab 2, and Tab 3!
+        stock_toggle_btn.click(
+            toggle_stock_and_refresh,
+            item_select,
+            [stock_toggle_btn, current_status_display, stock_table, menu_table, stock_action_status],
+        )
 
 if __name__ == "__main__":
     print("Starting CanteenRush... Open in your browser: http://127.0.0.1:7860")

@@ -146,6 +146,24 @@ class CanteenQueueManager:
                     return True
         return False
 
+    def get_item_stock_status(self, item_name: str) -> bool:
+        """Returns True if in stock, False if out of stock."""
+        target = item_name.strip().lower()
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                if it["name"].strip().lower() == target or target in it["name"].lower():
+                    return it.get("in_stock", True)
+        return True
+
+    def get_menu_ref_data(self) -> List[List]:
+        """Returns rows formatted for Tab 3 Menu Reference."""
+        rows = []
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                status = "🟢 In Stock" if it.get("in_stock", True) else "🔴 Out of Stock"
+                rows.append([cat, it["name"], f"₹{it['price']}", status, f"{it['prep_time']} mins", it["desc"]])
+        return rows
+
     def get_all_item_names(self) -> List[str]:
         """Get flat list of all item names for dropdowns."""
         names = []
@@ -153,6 +171,7 @@ class CanteenQueueManager:
             for it in items:
                 names.append(it["name"])
         return names
+
 
     def get_queue_summary(self) -> Dict:
         """Returns statistics of the active kitchen queue."""
