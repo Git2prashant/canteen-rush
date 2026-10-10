@@ -25,7 +25,9 @@ CANTEEN_MENU = {
         {"name": "Bread Omelette", "price": 45, "prep_time": 5, "desc": "Fluffy double-egg omelette between toasted bread slices"},
     ],
     "Beverages": [
-        {"name": "Cold Coffee with Ice Cream", "price": 50, "prep_time": 3, "desc": "Thick blended cold coffee topped with vanilla scoop"},
+        {"name": "Hot Coffee (Cup)", "price": 25, "prep_time": 3, "desc": "Freshly brewed hot Nescafe coffee in a cup"},
+        {"name": "Cold Coffee", "price": 45, "prep_time": 3, "desc": "Chilled blended cold coffee"},
+        {"name": "Cold Coffee with Ice Cream", "price": 55, "prep_time": 4, "desc": "Thick blended cold coffee topped with vanilla scoop"},
         {"name": "Hot Masala Chai", "price": 15, "prep_time": 2, "desc": "Kadak ginger-cardamom tea"},
         {"name": "Fresh Lime Soda", "price": 35, "prep_time": 3, "desc": "Refreshing sweet & salted lime soda"},
         {"name": "Sweet Lassi", "price": 40, "prep_time": 3, "desc": "Thick chilled Punjabi lassi"},
