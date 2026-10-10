@@ -133,12 +133,48 @@ custom_theme = gr.themes.Soft(
     secondary_hue="amber",
 )
 
-with gr.Blocks(title=APP_TITLE, theme=custom_theme) as demo:
-    gr.Markdown(
+CUSTOM_CSS = """
+body, .gradio-container {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+.header-box {
+    background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+    border: 1px solid #059669;
+    border-radius: 14px;
+    padding: 20px 24px;
+    color: white;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(6, 78, 59, 0.25);
+}
+.header-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #34d399;
+    margin: 0;
+}
+.badge-pill {
+    display: inline-block;
+    background: rgba(52, 211, 153, 0.15);
+    border: 1px solid #34d399;
+    color: #6ee7b7;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 8px;
+}
+"""
+
+with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
+    gr.HTML(
         f"""
-        # 🍔 {APP_TITLE}
-        ### Autonomous Campus Pre-Order & Kitchen Queue Agent · IIT Bhilai
-        **Powered by Gemma 4 (`gemma-4-26b-a4b-it`) via Gemini API**
+        <div class="header-box">
+            <h1 class="header-title">🍔 {APP_TITLE}</h1>
+            <p style="margin: 6px 0 0 0; color: #e2e8f0; font-size: 1rem;">
+                Autonomous Campus Dining Pre-Order & Real-Time Kitchen Dispatch · <strong>IIT Bhilai</strong>
+            </p>
+            <div class="badge-pill">⚡ Powered by Gemma 4 (gemma-4-26b-a4b-it) MoE via Gemini API</div>
+        </div>
         """
     )
 
