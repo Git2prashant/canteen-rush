@@ -234,13 +234,24 @@ with gr.Blocks(title=APP_TITLE) as demo:
                     )
                     card_output = gr.HTML(label="Order Status Card")
 
-                    gr.Markdown("##### ⚡ Quick Item Add (Click to append):")
+                    gr.Markdown("##### ⚡ Quick Menu Items (Click to add):")
                     with gr.Row():
                         chip_maggi = gr.Button("+ 🍜 Veg Maggi", size="sm", variant="secondary")
-                        chip_coffee = gr.Button("+ ☕ Hot Coffee", size="sm", variant="secondary")
                         chip_sandwich = gr.Button("+ 🥪 Grilled Sandwich", size="sm", variant="secondary")
+                        chip_coffee = gr.Button("+ ☕ Hot Coffee", size="sm", variant="secondary")
                         chip_cold_coffee = gr.Button("+ 🧋 Cold Coffee", size="sm", variant="secondary")
-                        chip_spicy = gr.Button("+ 🌶️ Extra Spicy", size="sm", variant="secondary")
+
+                    # FOOD-ONLY CUSTOMIZATION (Hidden until food like Maggi or Sandwich is ordered)
+                    with gr.Row(visible=False) as food_custom_row:
+                        gr.Markdown("🌶️ **Food Customization:**")
+                        chip_spicy = gr.Button("🌶️ Extra Spicy (Food)", size="sm", variant="secondary")
+                        chip_cheese = gr.Button("🧀 Extra Cheese", size="sm", variant="secondary")
+
+                    # BEVERAGE-ONLY CUSTOMIZATION (Hidden until coffee/tea is ordered)
+                    with gr.Row(visible=False) as bev_custom_row:
+                        gr.Markdown("☕ **Beverage Customization:**")
+                        chip_strong = gr.Button("☕ Extra Strong / Kadak", size="sm", variant="secondary")
+                        chip_sugar = gr.Button("🥛 Less Sugar", size="sm", variant="secondary")
 
                     user_input = gr.Textbox(
                         lines=3,
@@ -292,21 +303,51 @@ with gr.Blocks(title=APP_TITLE) as demo:
                         info="Shows function-calling in real-time as Gemma executes your tools",
                     )
 
-            # Helper for quick chips
+            # Helpers for dynamic contextual customization chips
             def add_chip(current, chip_text):
                 cur = (current or "").strip()
                 if not cur:
                     return f"Order {chip_text}"
                 return f"{cur}, {chip_text}"
 
-            chip_maggi.click(lambda c: add_chip(c, "1x Veg Maggi"), user_input, user_input)
-            chip_coffee.click(lambda c: add_chip(c, "1x Hot Coffee (Cup)"), user_input, user_input)
-            chip_sandwich.click(lambda c: add_chip(c, "1x Paneer Grilled Sandwich"), user_input, user_input)
-            chip_cold_coffee.click(lambda c: add_chip(c, "1x Cold Coffee"), user_input, user_input)
-            chip_spicy.click(lambda c: (c or "").strip() + (" (extra spicy)" if c else "Make it extra spicy"), user_input, user_input)
+            def check_visibility(text):
+                t = (text or "").lower()
+                has_food = any(f in t for f in ["maggi", "maggie", "sandwich", "roll", "paratha", "samosa", "thali", "rice", "omelette"])
+                has_bev = any(b in t for b in ["coffee", "tea", "chai", "lassi", "soda"])
+                return gr.update(visible=has_food), gr.update(visible=has_bev)
 
-            clear_btn.click(lambda: "", None, user_input)
+            def add_food_item(current, item_text):
+                updated = add_chip(current, item_text)
+                v_food, v_bev = check_visibility(updated)
+                return updated, v_food, v_bev
+
+            def add_bev_item(current, item_text):
+                updated = add_chip(current, item_text)
+                v_food, v_bev = check_visibility(updated)
+                return updated, v_food, v_bev
+
+            # Item clicks dynamically show the correct contextual row
+            chip_maggi.click(lambda c: add_food_item(c, "1x Veg Maggi"), user_input, [user_input, food_custom_row, bev_custom_row])
+            chip_sandwich.click(lambda c: add_food_item(c, "1x Paneer Grilled Sandwich"), user_input, [user_input, food_custom_row, bev_custom_row])
+            chip_coffee.click(lambda c: add_bev_item(c, "1x Hot Coffee (Cup)"), user_input, [user_input, food_custom_row, bev_custom_row])
+            chip_cold_coffee.click(lambda c: add_bev_item(c, "1x Cold Coffee"), user_input, [user_input, food_custom_row, bev_custom_row])
+
+            # Customization modifier clicks
+            chip_spicy.click(lambda c: (c or "").strip() + ", make food extra spicy", user_input, user_input)
+            chip_cheese.click(lambda c: (c or "").strip() + ", add extra cheese", user_input, user_input)
+            chip_strong.click(lambda c: (c or "").strip() + ", make coffee extra strong", user_input, user_input)
+            chip_sugar.click(lambda c: (c or "").strip() + ", less sugar", user_input, user_input)
+
+            # Auto-detect if student types food or drink manually
+            user_input.change(check_visibility, user_input, [food_custom_row, bev_custom_row])
+
+            clear_btn.click(
+                lambda: ("", gr.update(visible=False), gr.update(visible=False)),
+                None,
+                [user_input, food_custom_row, bev_custom_row],
+            )
             refresh_stock_btn.click(refresh_stock_board, None, stock_table)
+
 
             # Button wire-ups
             send_btn.click(
