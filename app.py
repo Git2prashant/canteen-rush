@@ -277,7 +277,6 @@ with gr.Blocks(title=APP_TITLE) as demo:
                             value=canteen_data.queue_manager.get_stock_board_data(),
                             interactive=False,
                             label="Live Canteen Stock",
-                            height=220,
                         )
 
                     tools_box = gr.Textbox(
