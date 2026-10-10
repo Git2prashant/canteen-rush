@@ -4,6 +4,7 @@ Manages Canteen Menu, Campus Student Database, and Live Order Queue.
 
 import time
 import random
+import re
 from typing import Dict, List, Optional
 
 # ---------------------------------------------------------
@@ -139,9 +140,24 @@ class CanteenQueueManager:
     def toggle_item_stock(self, item_name: str, in_stock: bool) -> bool:
         """Toggle stock availability of an item."""
         target = item_name.strip().lower()
+        clean_target = re.sub(r"\s*\(.*?\)", "", target).strip()
+        # 1. Exact name match
         for cat, items in CANTEEN_MENU.items():
             for it in items:
-                if it["name"].strip().lower() == target or target in it["name"].lower():
+                if it["name"].strip().lower() == target:
+                    it["in_stock"] = in_stock
+                    return True
+        # 2. Normalized clean name match (e.g. 'Chole Bhature' matches 'Chole Bhature (2 pcs)')
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                it_clean = re.sub(r"\s*\(.*?\)", "", it["name"].strip().lower()).strip()
+                if it_clean == clean_target:
+                    it["in_stock"] = in_stock
+                    return True
+        # 3. Substring match
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                if target in it["name"].lower() or clean_target in it["name"].lower():
                     it["in_stock"] = in_stock
                     return True
         return False
@@ -149,9 +165,22 @@ class CanteenQueueManager:
     def get_item_stock_status(self, item_name: str) -> bool:
         """Returns True if in stock, False if out of stock."""
         target = item_name.strip().lower()
+        clean_target = re.sub(r"\s*\(.*?\)", "", target).strip()
+        # 1. Exact match
         for cat, items in CANTEEN_MENU.items():
             for it in items:
-                if it["name"].strip().lower() == target or target in it["name"].lower():
+                if it["name"].strip().lower() == target:
+                    return it.get("in_stock", True)
+        # 2. Clean match
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                it_clean = re.sub(r"\s*\(.*?\)", "", it["name"].strip().lower()).strip()
+                if it_clean == clean_target:
+                    return it.get("in_stock", True)
+        # 3. Substring match
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                if target in it["name"].lower() or clean_target in it["name"].lower():
                     return it.get("in_stock", True)
         return True
 
@@ -200,14 +229,28 @@ class CanteenQueueManager:
         if not student.get("valid"):
             return {"success": False, "error": student.get("error")}
 
-        # Check if any requested item is currently marked OUT OF STOCK
+        # Check if any requested item is currently marked OUT OF STOCK.
+        # Sort items by name length descending so specific items like 'Cold Coffee with Ice Cream'
+        # are evaluated before shorter base names like 'Cold Coffee'.
+        all_menu_items = []
         for cat, items in CANTEEN_MENU.items():
             for it in items:
-                if not it.get("in_stock", True) and it["name"].lower() in items_summary.lower():
+                all_menu_items.append(it)
+        all_menu_items.sort(key=lambda x: len(x["name"]), reverse=True)
+
+        summary_lower = items_summary.lower()
+        for it in all_menu_items:
+            clean_name = re.sub(r"\s*\(.*?\)", "", it["name"].lower()).strip()
+            # If this item name appears in the requested items summary
+            if it["name"].lower() in summary_lower or clean_name in summary_lower:
+                if not it.get("in_stock", True):
                     return {
                         "success": False,
                         "error": f"Item '{it['name']}' is currently OUT OF STOCK. Please check the live Stock Board and select an available item.",
                     }
+                # Mask out this item so substring items don't trigger false out-of-stock
+                summary_lower = summary_lower.replace(it["name"].lower(), " [MATCHED] ")
+                summary_lower = summary_lower.replace(clean_name, " [MATCHED] ")
 
         # Check if student already has a pending cooking order (anti-spam rule)
         pending = [o for o in self.orders if o["roll"] == student["roll"] and o["status"] == "🟡 Cooking"]

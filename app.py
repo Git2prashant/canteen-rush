@@ -31,10 +31,14 @@ SYSTEM_RULE = (
     "   - 'cold coffee' maps to 'Cold Coffee' (₹45), or 'Cold Coffee with Ice Cream' (₹55) if ice cream is requested.\n"
     "   - 'maggie' or 'maggi' maps to 'Veg Maggi' (₹40) unless cheese or egg is specified.\n"
     "   - 'chai' or 'tea' maps to 'Hot Masala Chai' (₹15).\n"
-    "4. Stock Availability Awareness:\n"
-    "   - When checking the menu with get_canteen_menu, look at the stock status tags.\n"
-    "   - If an item is marked '🔴 OUT OF STOCK' (such as Chole Bhature or Sweet Lassi), do NOT place an order for it!\n"
-    "   - Instead, politely tell the student that it is currently out of stock and recommend available in-stock alternatives from the same category.\n"
+    "   - 'chole bhature' maps to 'Chole Bhature (2 pcs)' (₹70).\n"
+    "   - 'samosa' maps to 'Samosa (2 pcs)' (₹30).\n"
+    "4. Dynamic Stock Availability (CRITICAL):\n"
+    "   - Inventory availability is dynamic and managed live by the canteen kitchen staff.\n"
+    "   - ALWAYS check the LIVE CANTEEN INVENTORY table provided below:\n"
+    "     * If an item is marked '[🟢 IN STOCK]', it is AVAILABLE right now! You CAN and MUST place the order for it if requested!\n"
+    "     * If an item is marked '[🔴 OUT OF STOCK]', do NOT place an order for it. Politely inform the student that the kitchen has temporarily run out of it, and suggest available in-stock alternatives from the same category.\n"
+    "   - NEVER claim an item is out of stock if it is marked '[🟢 IN STOCK]' in the Live Inventory table!\n"
     "5. Culinary Common-Sense & Customization Routing:\n"
     "   - Customizations like 'spicy', 'extra spicy', 'no onions', 'extra cheese' ONLY apply to savory food (Maggi, Sandwiches, Rolls, Parathas, Rice).\n"
     "   - Customizations like 'less sugar', 'extra sweet', 'less ice', 'strong/kadak' ONLY apply to beverages (Coffee, Tea, Lassi, Soda).\n"
@@ -47,6 +51,16 @@ SYSTEM_RULE = (
     "8. Remind them they can pay at Counter 2 via UPI or Cash upon showing their Token and Claim PIN.\n"
     "Keep answers friendly, clear, and direct."
 )
+
+def get_live_system_prompt() -> str:
+    """Injects up-to-the-second canteen inventory into Gemma's prompt so stock changes are instant."""
+    live_inventory = canteen_data.queue_manager.get_menu_formatted()
+    return (
+        f"{SYSTEM_RULE}\n\n"
+        f"=== LIVE CANTEEN INVENTORY TABLE (CURRENT STATUS) ===\n"
+        f"{live_inventory}\n"
+        f"====================================================="
+    )
 
 APP_TITLE = "CanteenRush | Campus Pre-Order & Kitchen Queue Agent"
 
@@ -61,7 +75,7 @@ def student_chat(message: str, roll_no: str, history):
     if roll_no.strip() and roll_no.strip() not in message:
         full_prompt = f"My Roll Number is {roll_no.strip()}. {message}"
 
-    agent = Agent(system=SYSTEM_RULE)
+    agent = Agent(system=get_live_system_prompt())
     try:
         reply = agent.run(full_prompt)
     except Exception as error:
@@ -70,10 +84,13 @@ def student_chat(message: str, roll_no: str, history):
     # Format tool steps for visibility during demo
     steps_log = []
     for i, step in enumerate(agent.steps, 1):
-        if step.get("type") == "tool":
-            steps_log.append(f"{i}. 🛠️ Called Tool: `{step.get('name')}`({step.get('args')})")
-        elif step.get("type") == "tool_result":
-            res_preview = str(step.get("result"))[:120].replace("\n", " ")
+        kind = step.get("type") or step.get("kind")
+        if kind in ("tool", "tool_call"):
+            tool_name = step.get("name") or "tool"
+            tool_args = step.get("args") or ""
+            steps_log.append(f"{i}. 🛠️ Called Tool: `{tool_name}`({tool_args})")
+        elif kind == "tool_result":
+            res_preview = str(step.get("result") or step.get("text"))[:120].replace("\n", " ")
             steps_log.append(f"   ↳ Result: {res_preview}...")
 
     tool_display = "\n".join(steps_log) if steps_log else "ℹ️ Direct answer (no tools required)"
@@ -81,8 +98,9 @@ def student_chat(message: str, roll_no: str, history):
     # Format order card highlight if order was placed
     card_html = ""
     for step in agent.steps:
-        if step.get("name") == "place_canteen_preorder" and "Order Placed Successfully" in str(step.get("result", "")):
-            # Look up the latest order placed
+        s_res = str(step.get("result", "")) + str(step.get("text", ""))
+        s_name = str(step.get("name", ""))
+        if (s_name == "place_canteen_preorder" or "place_canteen_preorder" in s_res) and "Order Placed Successfully" in s_res:
             latest = canteen_data.queue_manager.orders[-1]
             card_html = f"""
             <div style="background: linear-gradient(135deg, #1e3a2f, #122820); border: 2px solid #2ecc71; border-radius: 12px; padding: 18px; color: #ffffff; margin-top: 10px;">
@@ -98,6 +116,7 @@ def student_chat(message: str, roll_no: str, history):
                 </p>
             </div>
             """
+            break
 
     history = history or []
     history.append({"role": "user", "content": message})

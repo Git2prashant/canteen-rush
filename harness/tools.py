@@ -76,7 +76,7 @@ def run_tool(name, args):
 
 @tool
 def get_canteen_menu(category: str = "all") -> str:
-    """Get the available canteen menu items, prices in rupees, and prep times.
+    """Get the live canteen menu items, prices in rupees, prep times, and current stock status (🟢 IN STOCK or 🔴 OUT OF STOCK).
 
     category: 'all', 'Hot Snacks', 'Quick Bites', 'Beverages', or 'Meals'
     """

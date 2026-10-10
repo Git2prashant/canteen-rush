@@ -21,8 +21,11 @@ class Agent:
         self.generate = generate or gemma_client.generate_raw  # tests swap in a fake
         self.steps = []  # a list a screen can show: {"kind": ..., "text": ...}
 
-    def _log(self, kind, text):
-        self.steps.append({"kind": kind, "text": text})
+    def _log(self, kind, text, extra=None):
+        entry = {"kind": kind, "text": text}
+        if extra:
+            entry.update(extra)
+        self.steps.append(entry)
         if self.verbose:
             print(f"[{kind}] {text}")
 
@@ -42,7 +45,7 @@ class Agent:
             # No tool request means the model gave its final answer.
             if not calls:
                 answer = response.text or ""
-                self._log("answer", answer)
+                self._log("answer", answer, {"type": "answer", "text": answer})
                 return answer
 
             # Keep the model's own turn in the conversation, then answer each request.
@@ -50,13 +53,21 @@ class Agent:
             replies = []
             for call in calls:
                 args = dict(call.args or {})
-                self._log("tool_call", f"Model asked to run {call.name} with {args}")
+                self._log(
+                    "tool_call",
+                    f"Model asked to run {call.name} with {args}",
+                    {"type": "tool", "name": call.name, "args": args},
+                )
                 result = toolbox.run_tool(call.name, args)
-                self._log("tool_result", f"Our code returned: {result}")
+                self._log(
+                    "tool_result",
+                    f"Our code returned: {result}",
+                    {"type": "tool_result", "name": call.name, "result": result},
+                )
                 reply = types.FunctionResponse(id=call.id, name=call.name, response={"result": result})
                 replies.append(types.Part(function_response=reply))
             contents.append(types.Content(role="user", parts=replies))
 
         message = f"Stopped after {self.max_steps} steps without a final answer. Try a simpler question."
-        self._log("stopped", message)
+        self._log("stopped", message, {"type": "stopped", "text": message})
         return message
