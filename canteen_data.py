@@ -77,36 +77,9 @@ def verify_student_in_roster(roll_no: str) -> Dict[str, str]:
 # ---------------------------------------------------------
 class CanteenQueueManager:
     def __init__(self):
-        self.next_token = 103
-        # Pre-seed with 2 realistic orders so the kitchen board looks active in the demo
-        self.orders: List[Dict] = [
-            {
-                "token": 101,
-                "roll": "12240102",
-                "name": "Priya Verma",
-                "hostel": "Shivnath Hostel",
-                "items": "1x Cold Coffee with Ice Cream",
-                "notes": "Extra chocolate drizzle",
-                "total": 50,
-                "status": "🟢 Ready for Pickup",
-                "pin": "4210",
-                "eta_minutes": 0,
-                "order_time": "14:15",
-            },
-            {
-                "token": 102,
-                "roll": "12240103",
-                "name": "Aman Patel",
-                "hostel": "Indravati Hostel",
-                "items": "1x Cheese Maggi",
-                "notes": "Less spicy, extra cheese",
-                "total": 55,
-                "status": "🟡 Cooking",
-                "pin": "8912",
-                "eta_minutes": 6,
-                "order_time": "14:22",
-            },
-        ]
+        self.next_token = 101
+        # Real-time only — no pre-seeded orders. Every order comes from students via the AI agent.
+        self.orders: List[Dict] = []
 
     def get_menu_formatted(self, category: str = "all") -> str:
         """Returns readable markdown of menu with real-time stock availability."""

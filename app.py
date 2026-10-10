@@ -438,8 +438,11 @@ with gr.Blocks(title=APP_TITLE) as demo:
         # TAB 2: Canteen Kitchen Live Display
         with gr.Tab("🍳 Canteen Kitchen Live Board"):
             with gr.Row():
+                _init_summary = canteen_data.queue_manager.get_queue_summary()
                 stats_display = gr.Markdown(
-                    "🔥 **1** Cooking in Kitchen  |  🟢 **1** Ready for Pickup  |  ⏱️ **~6 mins** Avg Prep Time"
+                    f"🔥 **{_init_summary['cooking_count']}** Cooking in Kitchen  |  "
+                    f"🟢 **{_init_summary['ready_count']}** Ready for Pickup  |  "
+                    f"⏱️ **~{_init_summary['estimated_wait_minutes']} mins** Avg Prep Time"
                 )
                 refresh_btn = gr.Button("🔄 Refresh Kitchen Board", size="sm", variant="secondary")
 
