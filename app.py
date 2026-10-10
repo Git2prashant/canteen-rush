@@ -31,10 +31,14 @@ SYSTEM_RULE = (
     "   - 'cold coffee' maps to 'Cold Coffee' (₹45), or 'Cold Coffee with Ice Cream' (₹55) if ice cream is requested.\n"
     "   - 'maggie' or 'maggi' maps to 'Veg Maggi' (₹40) unless cheese or egg is specified.\n"
     "   - 'chai' or 'tea' maps to 'Hot Masala Chai' (₹15).\n"
-    "4. Use get_canteen_menu to confirm item prices, calculate total bill accurately, and call place_canteen_preorder "
+    "4. Stock Availability Awareness:\n"
+    "   - When checking the menu with get_canteen_menu, look at the stock status tags.\n"
+    "   - If an item is marked '🔴 OUT OF STOCK' (such as Chole Bhature or Sweet Lassi), do NOT place an order for it!\n"
+    "   - Instead, politely tell the student that it is currently out of stock and recommend available in-stock alternatives from the same category.\n"
+    "5. Use get_canteen_menu to confirm item prices, calculate total bill accurately, and call place_canteen_preorder "
     "to officially register the ticket into the kitchen queue.\n"
-    "5. Return a clean, cheerful confirmation showing Token #, Claim PIN, Total Bill, ETA, and Pickup Counter.\n"
-    "6. Remind them they can pay at Counter 2 via UPI or Cash upon showing their Token and Claim PIN.\n"
+    "6. Return a clean, cheerful confirmation showing Token #, Claim PIN, Total Bill, ETA, and Pickup Counter.\n"
+    "7. Remind them they can pay at Counter 2 via UPI or Cash upon showing their Token and Claim PIN.\n"
     "Keep answers friendly, clear, and direct."
 )
 
@@ -108,6 +112,11 @@ def refresh_kitchen_board():
     return data, stats_text
 
 
+def refresh_stock_board():
+    """Returns live stock board rows."""
+    return canteen_data.queue_manager.get_stock_board_data()
+
+
 def staff_mark_ready(token_str: str):
     """Staff marks order as ready."""
     try:
@@ -128,6 +137,17 @@ def staff_mark_collected(token_str: str):
         return f"⚠️ Token #{clean_token} not found in active queue."
     except ValueError:
         return "⚠️ Please enter a valid Token number (e.g. 101)."
+
+
+def staff_set_stock(item_name: str, in_stock: bool):
+    """Staff marks item as in-stock or out-of-stock."""
+    if not item_name:
+        return "⚠️ Please select an item from the dropdown.", canteen_data.queue_manager.get_stock_board_data()
+    if canteen_data.queue_manager.toggle_item_stock(item_name, in_stock):
+        status_tag = "🟢 IN STOCK (Available)" if in_stock else "🔴 OUT OF STOCK"
+        return f"Updated: '{item_name}' is now {status_tag}!", canteen_data.queue_manager.get_stock_board_data()
+    return f"⚠️ Item '{item_name}' not found.", canteen_data.queue_manager.get_stock_board_data()
+
 
 
 # ---------------------------------------------------------
@@ -184,7 +204,7 @@ body, .gradio-container {
 """
 
 
-with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
+with gr.Blocks(title=APP_TITLE) as demo:
     gr.HTML(
         f"""
         <div class="header-box">
@@ -203,7 +223,7 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
             with gr.Row():
                 with gr.Column(scale=3):
                     chatbot = gr.Chatbot(
-                        height=400,
+                        height=380,
                         label="Gemma 4 Canteen Concierge",
                     )
                     card_output = gr.HTML(label="Order Status Card")
@@ -245,20 +265,26 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
                         label="🎓 Your Campus Roll Number",
                         info="Used to authenticate against the student roster (prevents spam)",
                     )
+
+                    # LIVE STOCK BOARD
+                    with gr.Accordion("📋 Live Canteen Stock Board (In Stock vs Out of Stock)", open=True):
+                        with gr.Row():
+                            gr.Markdown("🟢 *In Stock*  |  🔴 *Out of Stock*")
+                            refresh_stock_btn = gr.Button("🔄 Refresh Stock", size="sm", variant="secondary")
+                        stock_table = gr.Dataframe(
+                            headers=["Item", "Category", "Price", "Live Stock Status", "Prep"],
+                            datatype=["str", "str", "str", "str", "str"],
+                            value=canteen_data.queue_manager.get_stock_board_data(),
+                            interactive=False,
+                            label="Live Canteen Stock",
+                            height=220,
+                        )
+
                     tools_box = gr.Textbox(
                         label="⚙️ Gemma 4 Agent Tool Steps (Live)",
-                        lines=10,
+                        lines=6,
                         interactive=False,
                         info="Shows function-calling in real-time as Gemma executes your tools",
-                    )
-                    gr.Markdown(
-                        """
-                        > [!TIP]
-                        > **How it works:**
-                        > 1. Chat naturally with **Gemma 4**.
-                        > 2. The agent calls `get_canteen_menu`, `verify_student`, and `place_canteen_preorder`.
-                        > 3. Your order immediately appears in the **Kitchen Live Board** (Tab 2) with a unique Token and Claim PIN!
-                        """
                     )
 
             # Helper for quick chips
@@ -275,6 +301,7 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
             chip_spicy.click(lambda c: (c or "").strip() + (" (extra spicy)" if c else "Make it extra spicy"), user_input, user_input)
 
             clear_btn.click(lambda: "", None, user_input)
+            refresh_stock_btn.click(refresh_stock_board, None, stock_table)
 
             # Button wire-ups
             send_btn.click(
@@ -304,7 +331,6 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
                 user_input,
             )
 
-
         # TAB 2: Canteen Kitchen Live Display
         with gr.Tab("🍳 Canteen Kitchen Live Board"):
             with gr.Row():
@@ -329,6 +355,20 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
 
             action_status = gr.Textbox(label="Status Message", interactive=False)
 
+            gr.Markdown("### 📦 Canteen Stock Management (Toggle Live Availability):")
+            with gr.Row():
+                item_select = gr.Dropdown(
+                    choices=canteen_data.queue_manager.get_all_item_names(),
+                    value="Chole Bhature (2 pcs)",
+                    label="Select Menu Item",
+                    scale=2,
+                )
+                btn_mark_out = gr.Button("🔴 Mark OUT of Stock", variant="stop", scale=1)
+                btn_mark_in = gr.Button("🟢 Mark IN Stock", variant="primary", scale=1)
+
+            stock_action_status = gr.Textbox(label="Stock Update Message", interactive=False)
+
+            # Wire-ups for staff controls
             refresh_btn.click(refresh_kitchen_board, None, [board_table, stats_display])
             ready_btn.click(staff_mark_ready, target_token, action_status).then(
                 refresh_kitchen_board, None, [board_table, stats_display]
@@ -337,21 +377,34 @@ with gr.Blocks(title=APP_TITLE, theme=custom_theme, css=CUSTOM_CSS) as demo:
                 refresh_kitchen_board, None, [board_table, stats_display]
             )
 
+            btn_mark_out.click(
+                lambda item: staff_set_stock(item, False),
+                item_select,
+                [stock_action_status, stock_table],
+            )
+            btn_mark_in.click(
+                lambda item: staff_set_stock(item, True),
+                item_select,
+                [stock_action_status, stock_table],
+            )
+
         # TAB 3: Canteen Menu Reference
         with gr.Tab("📋 Canteen Menu & Price Card"):
             gr.Markdown("### 📜 IIT Bhilai Canteen Official Menu")
             menu_rows = []
             for cat, items in canteen_data.CANTEEN_MENU.items():
                 for it in items:
-                    menu_rows.append([cat, it["name"], f"₹{it['price']}", f"{it['prep_time']} mins", it["desc"]])
+                    status = "🟢 In Stock" if it.get("in_stock", True) else "🔴 Out of Stock"
+                    menu_rows.append([cat, it["name"], f"₹{it['price']}", status, f"{it['prep_time']} mins", it["desc"]])
 
             gr.Dataframe(
-                headers=["Category", "Item", "Price", "Prep Time", "Description"],
-                datatype=["str", "str", "str", "str", "str"],
+                headers=["Category", "Item", "Price", "Stock Status", "Prep Time", "Description"],
+                datatype=["str", "str", "str", "str", "str", "str"],
                 value=menu_rows,
                 interactive=False,
             )
 
 if __name__ == "__main__":
     print("Starting CanteenRush... Open in your browser: http://127.0.0.1:7860")
-    demo.launch(share=False)
+    demo.launch(theme=custom_theme, css=CUSTOM_CSS, share=False)
+

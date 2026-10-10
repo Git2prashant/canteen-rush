@@ -11,34 +11,35 @@ from typing import Dict, List, Optional
 # ---------------------------------------------------------
 CANTEEN_MENU = {
     "Hot Snacks": [
-        {"name": "Veg Maggi", "price": 40, "prep_time": 6, "desc": "Classic 2-minute Maggi with carrots, peas and spices"},
-        {"name": "Cheese Maggi", "price": 55, "prep_time": 7, "desc": "Loaded with melted mozzarella and herbs"},
-        {"name": "Egg Maggi", "price": 50, "prep_time": 8, "desc": "Double egg scramble tossed into spicy Maggi"},
-        {"name": "Paneer Grilled Sandwich", "price": 65, "prep_time": 8, "desc": "Toasted bread with seasoned cottage cheese & chutney"},
-        {"name": "Veg Cheese Sandwich", "price": 55, "prep_time": 7, "desc": "Crispy grilled sandwich with cucumber, tomato & cheese"},
-        {"name": "Paneer Kathi Roll", "price": 70, "prep_time": 9, "desc": "Crispy paratha wrap stuffed with paneer tikka & sauces"},
-        {"name": "Egg Kathi Roll", "price": 60, "prep_time": 8, "desc": "Double egg kathi roll with onions and green chutney"},
+        {"name": "Veg Maggi", "price": 40, "prep_time": 6, "desc": "Classic 2-minute Maggi with carrots, peas and spices", "in_stock": True},
+        {"name": "Cheese Maggi", "price": 55, "prep_time": 7, "desc": "Loaded with melted mozzarella and herbs", "in_stock": True},
+        {"name": "Egg Maggi", "price": 50, "prep_time": 8, "desc": "Double egg scramble tossed into spicy Maggi", "in_stock": True},
+        {"name": "Paneer Grilled Sandwich", "price": 65, "prep_time": 8, "desc": "Toasted bread with seasoned cottage cheese & chutney", "in_stock": True},
+        {"name": "Veg Cheese Sandwich", "price": 55, "prep_time": 7, "desc": "Crispy grilled sandwich with cucumber, tomato & cheese", "in_stock": True},
+        {"name": "Paneer Kathi Roll", "price": 70, "prep_time": 9, "desc": "Crispy paratha wrap stuffed with paneer tikka & sauces", "in_stock": True},
+        {"name": "Egg Kathi Roll", "price": 60, "prep_time": 8, "desc": "Double egg kathi roll with onions and green chutney", "in_stock": True},
     ],
     "Quick Bites": [
-        {"name": "Samosa (2 pcs)", "price": 30, "prep_time": 2, "desc": "Hot crispy aloo samosas with mint and tamarind chutney"},
-        {"name": "Aloo Paratha with Curd", "price": 50, "prep_time": 7, "desc": "Stuffed tawa paratha served with fresh curd & butter"},
-        {"name": "Bread Omelette", "price": 45, "prep_time": 5, "desc": "Fluffy double-egg omelette between toasted bread slices"},
+        {"name": "Samosa (2 pcs)", "price": 30, "prep_time": 2, "desc": "Hot crispy aloo samosas with mint and tamarind chutney", "in_stock": True},
+        {"name": "Aloo Paratha with Curd", "price": 50, "prep_time": 7, "desc": "Stuffed tawa paratha served with fresh curd & butter", "in_stock": True},
+        {"name": "Bread Omelette", "price": 45, "prep_time": 5, "desc": "Fluffy double-egg omelette between toasted bread slices", "in_stock": True},
     ],
     "Beverages": [
-        {"name": "Hot Coffee (Cup)", "price": 25, "prep_time": 3, "desc": "Freshly brewed hot Nescafe coffee in a cup"},
-        {"name": "Cold Coffee", "price": 45, "prep_time": 3, "desc": "Chilled blended cold coffee"},
-        {"name": "Cold Coffee with Ice Cream", "price": 55, "prep_time": 4, "desc": "Thick blended cold coffee topped with vanilla scoop"},
-        {"name": "Hot Masala Chai", "price": 15, "prep_time": 2, "desc": "Kadak ginger-cardamom tea"},
-        {"name": "Fresh Lime Soda", "price": 35, "prep_time": 3, "desc": "Refreshing sweet & salted lime soda"},
-        {"name": "Sweet Lassi", "price": 40, "prep_time": 3, "desc": "Thick chilled Punjabi lassi"},
+        {"name": "Hot Coffee (Cup)", "price": 25, "prep_time": 3, "desc": "Freshly brewed hot Nescafe coffee in a cup", "in_stock": True},
+        {"name": "Cold Coffee", "price": 45, "prep_time": 3, "desc": "Chilled blended cold coffee", "in_stock": True},
+        {"name": "Cold Coffee with Ice Cream", "price": 55, "prep_time": 4, "desc": "Thick blended cold coffee topped with vanilla scoop", "in_stock": True},
+        {"name": "Hot Masala Chai", "price": 15, "prep_time": 2, "desc": "Kadak ginger-cardamom tea", "in_stock": True},
+        {"name": "Fresh Lime Soda", "price": 35, "prep_time": 3, "desc": "Refreshing sweet & salted lime soda", "in_stock": True},
+        {"name": "Sweet Lassi", "price": 40, "prep_time": 3, "desc": "Thick chilled Punjabi lassi", "in_stock": False},
     ],
     "Meals": [
-        {"name": "Mini Veg Thali", "price": 80, "prep_time": 5, "desc": "Dal tadka, seasonal sabzi, 3 rotis, jeera rice & pickle"},
-        {"name": "Chole Bhature (2 pcs)", "price": 70, "prep_time": 8, "desc": "Spicy Amritsari chole with puffy fresh bhature"},
-        {"name": "Veg Fried Rice", "price": 70, "prep_time": 7, "desc": "Wok-tossed basmati rice with crunchy vegetables"},
-        {"name": "Egg Fried Rice", "price": 85, "prep_time": 8, "desc": "Wok-tossed fried rice with scrambled egg & spring onions"},
+        {"name": "Mini Veg Thali", "price": 80, "prep_time": 5, "desc": "Dal tadka, seasonal sabzi, 3 rotis, jeera rice & pickle", "in_stock": True},
+        {"name": "Chole Bhature (2 pcs)", "price": 70, "prep_time": 8, "desc": "Spicy Amritsari chole with puffy fresh bhature", "in_stock": False},
+        {"name": "Veg Fried Rice", "price": 70, "prep_time": 7, "desc": "Wok-tossed basmati rice with crunchy vegetables", "in_stock": True},
+        {"name": "Egg Fried Rice", "price": 85, "prep_time": 8, "desc": "Wok-tossed fried rice with scrambled egg & spring onions", "in_stock": True},
     ],
 }
+
 
 # ---------------------------------------------------------
 # 2. Campus Student Roster (Mock IIT Bhilai student roster)
@@ -107,7 +108,7 @@ class CanteenQueueManager:
         ]
 
     def get_menu_formatted(self, category: str = "all") -> str:
-        """Returns readable markdown of menu."""
+        """Returns readable markdown of menu with real-time stock availability."""
         lines = []
         cat_filter = category.strip().lower()
         for cat_name, items in CANTEEN_MENU.items():
@@ -115,9 +116,43 @@ class CanteenQueueManager:
                 continue
             lines.append(f"### {cat_name}")
             for it in items:
-                lines.append(f"- **{it['name']}** - ₹{it['price']} (Prep: {it['prep_time']}m) — *{it['desc']}*")
+                stock_label = "🟢 IN STOCK" if it.get("in_stock", True) else "🔴 OUT OF STOCK (Do NOT order)"
+                lines.append(f"- **{it['name']}** - ₹{it['price']} [{stock_label}] (Prep: {it['prep_time']}m) — *{it['desc']}*")
             lines.append("")
         return "\n".join(lines).strip()
+
+    def get_stock_board_data(self) -> List[List]:
+        """Returns rows formatted for real-time stock board display."""
+        rows = []
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                status = "🟢 Available" if it.get("in_stock", True) else "🔴 Out of Stock"
+                rows.append([
+                    it["name"],
+                    cat,
+                    f"₹{it['price']}",
+                    status,
+                    f"{it['prep_time']} mins",
+                ])
+        return rows
+
+    def toggle_item_stock(self, item_name: str, in_stock: bool) -> bool:
+        """Toggle stock availability of an item."""
+        target = item_name.strip().lower()
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                if it["name"].strip().lower() == target or target in it["name"].lower():
+                    it["in_stock"] = in_stock
+                    return True
+        return False
+
+    def get_all_item_names(self) -> List[str]:
+        """Get flat list of all item names for dropdowns."""
+        names = []
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                names.append(it["name"])
+        return names
 
     def get_queue_summary(self) -> Dict:
         """Returns statistics of the active kitchen queue."""
@@ -146,6 +181,15 @@ class CanteenQueueManager:
         if not student.get("valid"):
             return {"success": False, "error": student.get("error")}
 
+        # Check if any requested item is currently marked OUT OF STOCK
+        for cat, items in CANTEEN_MENU.items():
+            for it in items:
+                if not it.get("in_stock", True) and it["name"].lower() in items_summary.lower():
+                    return {
+                        "success": False,
+                        "error": f"Item '{it['name']}' is currently OUT OF STOCK. Please check the live Stock Board and select an available item.",
+                    }
+
         # Check if student already has a pending cooking order (anti-spam rule)
         pending = [o for o in self.orders if o["roll"] == student["roll"] and o["status"] == "🟡 Cooking"]
         if pending:
@@ -153,6 +197,7 @@ class CanteenQueueManager:
                 "success": False,
                 "error": f"Student {student['name']} already has an active order (Token #{pending[0]['token']}) currently cooking. Please collect it before placing a new one.",
             }
+
 
         queue_info = self.get_queue_summary()
         eta = queue_info["estimated_wait_minutes"] + random.randint(2, 5)
