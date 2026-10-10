@@ -148,25 +148,78 @@ def refresh_stock_board():
 
 
 def staff_mark_ready(token_str: str):
-    """Staff marks order as ready."""
+    """Staff marks order as ready. Returns (status_text, notification_html)."""
     try:
         clean_token = int(str(token_str).replace("#", "").strip())
+        order = next((o for o in canteen_data.queue_manager.orders if o["token"] == clean_token), None)
         if canteen_data.queue_manager.mark_ready(clean_token):
-            return f"✅ Token #{clean_token} marked READY FOR PICKUP!"
-        return f"⚠️ Token #{clean_token} not found in active queue."
+            if order:
+                notification_html = f"""
+                <div style="
+                    background: linear-gradient(135deg, #064e3b, #065f46);
+                    border: 2.5px solid #34d399;
+                    border-radius: 16px;
+                    padding: 22px 28px;
+                    color: #ffffff;
+                    margin: 12px 0;
+                    box-shadow: 0 0 30px rgba(52, 211, 153, 0.4);
+                    animation: pulse-glow 1.5s ease-in-out infinite alternate;
+                ">
+                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                        <div style="font-size: 2.8rem;">🔔</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #34d399; margin-bottom: 4px;">
+                                ORDER READY FOR PICKUP!
+                            </div>
+                            <div style="font-size: 1.1rem; color: #e2e8f0;">
+                                📣 <strong>{order['name']}</strong> — your order is ready at Counter 2!
+                            </div>
+                            <div style="display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap;">
+                                <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 6px 14px;">
+                                    🎫 Token: <strong style="color: #fbbf24; font-size: 1.2rem;">#{order['token']}</strong>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 6px 14px;">
+                                    🔑 Claim PIN: <strong style="color: #f87171; font-size: 1.2rem;">{order['pin']}</strong>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 6px 14px;">
+                                    📦 Items: <strong>{order['items']}</strong>
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 0.9rem; color: #6ee7b7; opacity: 0.85;">
+                                💰 Pay ₹{order['total']} via UPI or Cash at Counter 2 · Show PIN to collect!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <style>
+                @keyframes pulse-glow {{
+                    from {{ box-shadow: 0 0 20px rgba(52, 211, 153, 0.3); }}
+                    to {{ box-shadow: 0 0 40px rgba(52, 211, 153, 0.7); }}
+                }}
+                </style>
+                """
+                return f"✅ Token #{clean_token} marked READY FOR PICKUP!", notification_html
+            return f"✅ Token #{clean_token} marked READY FOR PICKUP!", ""
+        return f"⚠️ Token #{clean_token} not found in active queue.", ""
     except ValueError:
-        return "⚠️ Please enter a valid Token number (e.g. 102)."
+        return "⚠️ Please enter a valid Token number (e.g. 102).", ""
 
 
 def staff_mark_collected(token_str: str):
-    """Staff marks order as collected."""
+    """Staff marks order as collected. Returns (status_text, cleared_notification_html)."""
     try:
         clean_token = int(str(token_str).replace("#", "").strip())
         if canteen_data.queue_manager.mark_collected(clean_token):
-            return f"🎉 Token #{clean_token} completed & archived."
-        return f"⚠️ Token #{clean_token} not found in active queue."
+            cleared_html = f"""
+            <div style="background: rgba(17,24,39,0.5); border: 1px solid #374151; border-radius: 12px;
+                        padding: 14px 20px; color: #9ca3af; text-align: center; font-size: 0.95rem;">
+                ✅ Token #{clean_token} collected & archived. Waiting for next ready order...
+            </div>
+            """
+            return f"🎉 Token #{clean_token} completed & archived.", cleared_html
+        return f"⚠️ Token #{clean_token} not found in active queue.", ""
     except ValueError:
-        return "⚠️ Please enter a valid Token number (e.g. 101)."
+        return "⚠️ Please enter a valid Token number (e.g. 101).", ""
 
 
 def get_item_stock_ui_state(item_name: str):
@@ -455,6 +508,18 @@ with gr.Blocks(title=APP_TITLE) as demo:
             )
 
             gr.Markdown("### 👨‍🍳 Canteen Counter Controls:")
+
+            # 🔔 Live Pickup Notification Banner — appears when order is marked ready
+            notification_panel = gr.HTML(
+                value="""
+                <div style="background: rgba(17,24,39,0.4); border: 1px dashed #374151; border-radius: 12px;
+                            padding: 14px 20px; color: #6b7280; text-align: center; font-size: 0.9rem;">
+                    🔔 Pickup notifications will appear here when you mark an order as ready
+                </div>
+                """,
+                label="📣 Student Pickup Notification",
+            )
+
             with gr.Row():
                 target_token = gr.Textbox(placeholder="e.g. 102", label="Token Number to Update", scale=2)
                 ready_btn = gr.Button("🟢 Mark as Ready for Pickup", variant="primary", scale=2)
@@ -484,10 +549,18 @@ with gr.Blocks(title=APP_TITLE) as demo:
 
             # Wire-ups for staff controls
             refresh_btn.click(refresh_kitchen_board, None, [board_table, stats_display])
-            ready_btn.click(staff_mark_ready, target_token, action_status).then(
+            ready_btn.click(
+                staff_mark_ready,
+                inputs=target_token,
+                outputs=[action_status, notification_panel],
+            ).then(
                 refresh_kitchen_board, None, [board_table, stats_display]
             )
-            collect_btn.click(staff_mark_collected, target_token, action_status).then(
+            collect_btn.click(
+                staff_mark_collected,
+                inputs=target_token,
+                outputs=[action_status, notification_panel],
+            ).then(
                 refresh_kitchen_board, None, [board_table, stats_display]
             )
 
